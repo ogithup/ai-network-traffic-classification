@@ -109,6 +109,106 @@ Create and activate a virtual environment, then install dependencies:
 pip install -r requirements.txt
 ```
 
+Install `tshark` as part of Wireshark if you want to export fields directly from `.pcapng`.
+
+## Analyze Your Current PCAP Files
+
+You currently have:
+
+- `data/raw/youtube_traffic.pcapng`
+- `data/raw/browsing_traffic.pcapng`
+
+### 1. Export YouTube traffic to CSV
+
+Use your current Wireshark display filter for the local device IP:
+
+```bash
+python src/feature_extraction.py \
+  --input data/raw/youtube_traffic.pcapng \
+  --output data/processed/youtube_traffic.csv \
+  --label YouTube \
+  --display-filter "ip.addr == 10.100.1.194" \
+  --anonymize
+```
+
+### 2. Export Browsing traffic to CSV
+
+If the whole file is browsing traffic, no filter is required:
+
+```bash
+python src/feature_extraction.py \
+  --input data/raw/browsing_traffic.pcapng \
+  --output data/processed/browsing_traffic.csv \
+  --label Browsing \
+  --anonymize
+```
+
+### 3. Export all PCAP/PCAPNG files in one run
+
+If you keep multiple captures in `data/raw/`, you can export all of them at once:
+
+```bash
+python src/feature_extraction.py \
+  --input-dir data/raw \
+  --output-dir data/processed \
+  --anonymize
+```
+
+The script automatically infers labels from filenames:
+
+- `youtube_traffic.pcapng` -> `YouTube`
+- `browsing_traffic.pcapng` -> `Browsing`
+- `netflix_capture.pcapng` -> `Netflix`
+- `voip_session.pcapng` -> `VoIP`
+
+Batch mode exports the whole file. If one file needs a special Wireshark filter such as `ip.addr == 10.100.1.194`, use single-file mode for that capture.
+
+### 4. What this script exports
+
+The CSV includes beginner-friendly packet fields such as:
+
+- packet number
+- timestamp
+- packet length
+- source IP / destination IP
+- protocol
+- TCP or UDP ports
+- DNS query name
+- TLS server name when available
+
+These fields are enough to start exploration and build a first offline dataset.
+
+## GitHub and Privacy
+
+Do not push raw `pcap` or `pcapng` files to a public repository if they contain real private traffic.
+
+Why:
+
+- local IP addresses can reveal your home or lab network structure
+- DNS names and TLS hostnames can reveal visited services
+- packet captures may contain metadata you do not want to publish
+
+What this project does now:
+
+- `.gitignore` blocks `data/raw/` from being committed
+- `.gitignore` also blocks `data/processed/` exports by default
+- `--anonymize` replaces IP addresses in CSV with values like `host_001`
+
+Important:
+
+- IP anonymization protects `ip.src` and `ip.dst`
+- domain names such as `dns.qry.name` or TLS server names can still be sensitive
+- for public GitHub, prefer sharing only sanitized samples or derived features instead of raw packet exports
+
+## Recommended Beginner Workflow For Your Files
+
+1. Keep original captures only in `data/raw/`.
+2. Export CSV using `src/feature_extraction.py`.
+3. Open the CSV in the notebook and inspect columns.
+4. Create a smaller cleaned dataset for ML in `data/processed/`.
+5. Commit code, notebooks, and documentation.
+6. Do not commit real captures unless the repository is private and you accept the risk.
+
 ## Next Steps
 
 - Add a small sample dataset or your own captures

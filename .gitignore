@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local datasets and captures
+data/raw/*
+!data/raw/.gitkeep
+
+# Processed outputs are often regenerated locally.
+# Keep the folder, but do not commit exports by default.
+data/processed/*
+!data/processed/.gitkeep
+
+# Model artifacts
+models/
