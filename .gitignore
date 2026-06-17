@@ -16,5 +16,8 @@ data/raw/*
 data/processed/*
 !data/processed/.gitkeep
 
+# Generated signature exports can still contain sensitive network metadata.
+traffic_signature_analysis/*.csv
+
 # Model artifacts
 models/
