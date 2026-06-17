@@ -1,22 +1,49 @@
-# AI Network Traffic Classification
+# AI-Based Network Traffic Classification
 
-Beginner-friendly Python project for classifying network traffic from offline `PCAP` or exported `CSV` files.
+Student portfolio project for classifying offline network traffic captures with Python, Wireshark, and machine learning.
 
-## Project Goal
+## Project Overview
 
-The first goal of this project is simple:
+This project studies how different types of network traffic create different packet-level patterns and how those patterns can be used for classification.
 
-- Take captured network traffic
-- Extract useful features from it
-- Train a basic machine learning model
-- Classify traffic into categories such as:
-  - `YouTube`
-  - `Netflix`
-  - `Gaming`
-  - `VoIP`
-  - `Browsing`
+The current version focuses on **offline traffic classification**, not real-time detection.
 
-This project starts with **offline classification**, not real-time detection.
+Target traffic classes in this project:
+
+- `youtube`
+- `browsing`
+- `download`
+
+The workflow is:
+
+1. capture traffic with Wireshark
+2. export selected packet fields with `tshark`
+3. build a clean labeled dataset
+4. train a baseline machine learning model
+5. evaluate the model with standard classification metrics
+
+## Problem Statement
+
+Modern applications generate different traffic signatures.
+
+For example:
+
+- streaming traffic may rely heavily on `QUIC` and `UDP`
+- encrypted downloads may show long-lived `TCP` and `TLS` flows
+- normal browsing may show more `DNS`, many destinations, and shorter connections
+
+The goal of this project is to learn whether these traffic patterns can be turned into useful machine learning features and used to classify traffic automatically.
+
+## Tools and Technologies
+
+- `Wireshark`
+- `tshark`
+- `Python`
+- `pandas`
+- `numpy`
+- `scikit-learn`
+- `matplotlib`
+- `Jupyter Notebook`
 
 ## Project Structure
 
@@ -25,193 +52,245 @@ ai-network-traffic-classification/
 ├── data/
 │   ├── raw/
 │   └── processed/
+├── docs/
+├── models/
 ├── notebooks/
-│   └── 01_exploration.ipynb
 ├── src/
-│   ├── feature_extraction.py
-│   ├── train_model.py
-│   └── evaluate_model.py
+├── traffic_signature_analysis/
 ├── README.md
 └── requirements.txt
 ```
 
-## Folder Guide
+## Dataset Collection
 
-### `data/raw/`
+Traffic was collected manually with Wireshark from controlled sessions.
 
-Store original files here.
+Current capture types:
 
-Examples:
+- `youtube_traffic.pcapng`
+- `browsing_traffic.pcapng`
+- `download_traffic_1gb.pcapng`
 
-- `.pcap` captures from Wireshark
-- raw `.csv` exports from Wireshark or `tshark`
+Example capture logic:
 
-Do not manually edit files in this folder. Keep them as the original source data.
+- `YouTube`: stream video traffic from device IP `10.100.1.194`
+- `Browsing`: open normal web pages from device IP `10.100.1.194`
+- `Download`: download a large file from device IP `10.100.1.89`
 
-### `data/processed/`
+Important privacy rule:
 
-Store cleaned and transformed data here.
+- raw `pcap` files are **not committed** to public GitHub
+- generated CSV exports are also ignored by default
+- this project keeps code and documentation public, not sensitive traffic data
 
-Examples:
+For the full collection guide, see:
 
-- feature tables
-- cleaned CSV files
-- train/test split files
+- [docs/traffic_collection_guide.md](c:/Users/oğuz/ai-network-traffic-classification/docs/traffic_collection_guide.md)
 
-This folder is for data that is ready for modeling.
+## Feature Extraction
 
-### `notebooks/`
+The project uses `tshark` through Python `subprocess` calls to export selected fields from `pcapng` files.
 
-Use this folder for Jupyter notebooks.
+Traffic-specific signature exports are created in:
 
-Recommended use:
+- `traffic_signature_analysis/youtube_signature.csv`
+- `traffic_signature_analysis/browsing_signature.csv`
+- `traffic_signature_analysis/download_signature.csv`
 
-- explore packet or flow data
-- test ideas quickly
-- make plots and inspect distributions
+Main exported packet-level fields:
 
-`01_exploration.ipynb` is the first notebook for initial data inspection.
+- `frame.time_relative`
+- `ip.src`
+- `ip.dst`
+- `ip.proto`
+- `tcp.srcport`
+- `tcp.dstport`
+- `udp.srcport`
+- `udp.dstport`
+- `frame.len`
+- `dns.qry.name`
+- `tls.handshake.extensions_server_name`
+- `_ws.col.protocol`
+- `label`
 
-### `src/`
+After that, the Day 3 feature extraction step creates a simpler ML dataset with these final columns:
 
-Main Python source code lives here.
+- `src_ip`
+- `dst_ip`
+- `src_port`
+- `dst_port`
+- `protocol`
+- `packet_length`
+- `time_delta`
+- `label`
 
-Files:
+Final dataset output:
 
-- `feature_extraction.py`: turns raw traffic data into ML features
-- `train_model.py`: trains a baseline classification model
-- `evaluate_model.py`: evaluates the model with metrics such as accuracy, precision, recall, F1-score, and confusion matrix
+- `data/processed/final_labeled_dataset.csv`
 
-## Beginner Workflow
+Main scripts:
 
-1. Capture traffic with Wireshark or export a public dataset.
-2. Put original files into `data/raw/`.
-3. Explore the data in `notebooks/01_exploration.ipynb`.
-4. Build features in `src/feature_extraction.py`.
-5. Train a model in `src/train_model.py`.
-6. Evaluate results in `src/evaluate_model.py`.
+- [src/traffic_signature_analysis.py](c:/Users/oğuz/ai-network-traffic-classification/src/traffic_signature_analysis.py): export traffic-specific signature CSV files
+- [src/feature_extraction.py](c:/Users/oğuz/ai-network-traffic-classification/src/feature_extraction.py): combine exported CSV files into one clean labeled dataset
+- [src/analyze_traffic_signatures.py](c:/Users/oğuz/ai-network-traffic-classification/src/analyze_traffic_signatures.py): analyze protocol ratios in Python
 
-## Suggested Tools
+## Exploratory Data Analysis
 
-- Wireshark
-- Python
-- pandas
-- scikit-learn
-- matplotlib
-- tshark or pyshark
-- Jupyter Notebook
+The dataset is explored in Jupyter notebooks using `pandas` and `matplotlib`.
 
-## Setup
+Notebook coverage includes:
 
-Create and activate a virtual environment, then install dependencies:
+- missing value checks
+- label distribution
+- protocol distribution
+- packet length statistics
+- class-level comparisons
+
+Relevant notebooks:
+
+- [notebooks/01_exploration.ipynb](c:/Users/oğuz/ai-network-traffic-classification/notebooks/01_exploration.ipynb)
+- [notebooks/02_traffic_signature_analysis.ipynb](c:/Users/oğuz/ai-network-traffic-classification/notebooks/02_traffic_signature_analysis.ipynb)
+- [notebooks/03_dataset_eda.ipynb](c:/Users/oğuz/ai-network-traffic-classification/notebooks/03_dataset_eda.ipynb)
+
+## Machine Learning Model
+
+The baseline classifier is a `RandomForestClassifier`.
+
+Training pipeline:
+
+1. load `final_labeled_dataset.csv`
+2. clean categorical and numeric fields
+3. split into train and test sets
+4. encode categorical features
+5. train the model
+6. save the trained model and test outputs
+
+Training script:
+
+- [src/train_model.py](c:/Users/oğuz/ai-network-traffic-classification/src/train_model.py)
+
+Saved model artifacts:
+
+- `models/network_traffic_model.pkl`
+- `models/test_dataset.csv`
+- `models/test_predictions.csv`
+- `models/training_summary.json`
+
+## Evaluation Results
+
+The model is evaluated with:
+
+- `Accuracy`
+- `Precision`
+- `Recall`
+- `F1-score`
+- `Classification Report`
+- `Confusion Matrix`
+
+Evaluation script:
+
+- [src/evaluate_model.py](c:/Users/oğuz/ai-network-traffic-classification/src/evaluate_model.py)
+
+Saved evaluation outputs:
+
+- `models/evaluation_metrics.json`
+- `models/classification_report.txt`
+- `models/confusion_matrix.png`
+
+### Results Placeholder
+
+Use this section to document your latest full-dataset run.
+
+Example format:
+
+```text
+Accuracy: ...
+Precision (weighted): ...
+Recall (weighted): ...
+F1-score (weighted): ...
+```
+
+Short interpretation template:
+
+- Which traffic class was easiest to classify?
+- Which class was confused most often?
+- Was the dataset balanced enough?
+- Which features appeared most useful?
+
+## Traffic Signature Findings
+
+Early analysis showed that each traffic type has a different protocol signature:
+
+- `YouTube` -> mostly `QUIC` + `UDP`
+- `Download` -> mostly `TCP` + `TLS`
+- `Browsing` -> mostly `TCP` with visible `DNS` and mixed encrypted web traffic
+
+This is important because protocol distribution itself can become a useful feature source for ML classification.
+
+## Setup and Usage
+
+Create and activate a virtual environment, then install requirements:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Install `tshark` as part of Wireshark if you want to export fields directly from `.pcapng`.
-
-## Analyze Your Current PCAP Files
-
-You currently have:
-
-- `data/raw/youtube_traffic.pcapng`
-- `data/raw/browsing_traffic.pcapng`
-
-### 1. Export YouTube traffic to CSV
-
-Use your current Wireshark display filter for the local device IP:
+### 1. Export traffic signature CSV files
 
 ```bash
-python src/feature_extraction.py \
-  --input data/raw/youtube_traffic.pcapng \
-  --output data/processed/youtube_traffic.csv \
-  --label YouTube \
-  --display-filter "ip.addr == 10.100.1.194" \
-  --anonymize
+python src/traffic_signature_analysis.py
 ```
 
-### 2. Export Browsing traffic to CSV
-
-If the whole file is browsing traffic, no filter is required:
+### 2. Build the final labeled dataset
 
 ```bash
-python src/feature_extraction.py \
-  --input data/raw/browsing_traffic.pcapng \
-  --output data/processed/browsing_traffic.csv \
-  --label Browsing \
-  --anonymize
+python src/feature_extraction.py --combine-input-dir traffic_signature_analysis --combine-output data/processed/final_labeled_dataset.csv
 ```
 
-### 3. Export all PCAP/PCAPNG files in one run
-
-If you keep multiple captures in `data/raw/`, you can export all of them at once:
+### 3. Train the baseline model
 
 ```bash
-python src/feature_extraction.py \
-  --input-dir data/raw \
-  --output-dir data/processed \
-  --anonymize
+python src/train_model.py
 ```
 
-The script automatically infers labels from filenames:
+### 4. Evaluate the model
 
-- `youtube_traffic.pcapng` -> `YouTube`
-- `browsing_traffic.pcapng` -> `Browsing`
-- `netflix_capture.pcapng` -> `Netflix`
-- `voip_session.pcapng` -> `VoIP`
+```bash
+python src/evaluate_model.py
+```
 
-Batch mode exports the whole file. If one file needs a special Wireshark filter such as `ip.addr == 10.100.1.194`, use single-file mode for that capture.
+## What I Learned
 
-### 4. What this script exports
+This project helped me practice:
 
-The CSV includes beginner-friendly packet fields such as:
+- packet capture basics with Wireshark
+- the meaning of source IP, destination IP, ports, and protocols
+- how `PCAP` files can be converted into machine-learning-friendly tables
+- how protocol signatures differ between streaming, browsing, and download traffic
+- data cleaning and exploratory data analysis with `pandas`
+- supervised classification with `scikit-learn`
+- model evaluation with accuracy, precision, recall, F1-score, and confusion matrix
+- how to document a technical project for GitHub and portfolio use
 
-- packet number
-- timestamp
-- packet length
-- source IP / destination IP
-- protocol
-- TCP or UDP ports
-- DNS query name
-- TLS server name when available
+## Future Improvements
 
-These fields are enough to start exploration and build a first offline dataset.
+- add more traffic classes such as `Netflix`, `VoIP`, and `Gaming`
+- move from packet-level features to flow-level features
+- add feature importance analysis
+- test multiple models beyond Random Forest
+- improve handling of class imbalance
+- add automated experiment tracking
+- explore real-time traffic classification
 
-## GitHub and Privacy
+## Portfolio Note
 
-Do not push raw `pcap` or `pcapng` files to a public repository if they contain real private traffic.
+This project is designed as a student-friendly networking + machine learning portfolio project.
 
-Why:
+It shows practical work in:
 
-- local IP addresses can reveal your home or lab network structure
-- DNS names and TLS hostnames can reveal visited services
-- packet captures may contain metadata you do not want to publish
-
-What this project does now:
-
-- `.gitignore` blocks `data/raw/` from being committed
-- `.gitignore` also blocks `data/processed/` exports by default
-- `--anonymize` replaces IP addresses in CSV with values like `host_001`
-
-Important:
-
-- IP anonymization protects `ip.src` and `ip.dst`
-- domain names such as `dns.qry.name` or TLS server names can still be sensitive
-- for public GitHub, prefer sharing only sanitized samples or derived features instead of raw packet exports
-
-## Recommended Beginner Workflow For Your Files
-
-1. Keep original captures only in `data/raw/`.
-2. Export CSV using `src/feature_extraction.py`.
-3. Open the CSV in the notebook and inspect columns.
-4. Create a smaller cleaned dataset for ML in `data/processed/`.
-5. Commit code, notebooks, and documentation.
-6. Do not commit real captures unless the repository is private and you accept the risk.
-
-## Next Steps
-
-- Add a small sample dataset or your own captures
-- Start with CSV-based feature extraction before parsing PCAP directly
-- Train a simple baseline model such as Random Forest or Logistic Regression
-- Track class balance and evaluation metrics carefully
+- network traffic collection
+- packet analysis
+- feature engineering
+- machine learning
+- evaluation
+- technical documentation

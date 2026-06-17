@@ -21,3 +21,7 @@ traffic_signature_analysis/*.csv
 
 # Model artifacts
 models/
+
+# Generated report outputs
+docs/*.docx
+docs/report_assets/
